@@ -16,13 +16,18 @@
     ********************************************************************
 */
 
-#include<sys/socket.h> //socket
-#include<arpa/inet.h>  //inet_addr
+#include <sys/socket.h> //socket
+#include <arpa/inet.h>  //inet_addr
 #include <fcntl.h>     //for open
 #include <unistd.h>    //for close
+#include <pthread.h> //threads
+#include <unistd.h> //sleep
+#include <stdlib.h>
+
 
 #include "command.h"
 #include "requests.h"
+
 
 #define DEFAULT_BUFLEN 512
 #define DEFAULT_PORT   27015
@@ -75,7 +80,18 @@ void commandMenu(Command input, char clientMessage[])
     }
 }
 
-
+void* recv_thread(void* args)
+{
+    int sock = *((int*)args);
+    int readSize;
+    char serverMessage[DEFAULT_BUFLEN] = "";
+    while((readSize = recv(sock, serverMessage, DEFAULT_BUFLEN, 0)) > 0)
+    {
+        serverMessage[readSize] = '\0';
+        printf("%s", serverMessage);
+    }
+    return 0;
+}
 
 int main(int argc , char *argv[])
 {
@@ -83,14 +99,14 @@ int main(int argc , char *argv[])
     struct sockaddr_in server;
     Command selectedCommand;
 
-
+    system("clear");
     //Create socket
     sock = socket(AF_INET , SOCK_STREAM , 0);
     if (sock == -1)
     {
         printf("Could not create socket");
+        return 0;
     }
-    puts("Socket created");
 
     server.sin_addr.s_addr = inet_addr("127.0.0.1");
     server.sin_family = AF_INET;
@@ -100,18 +116,19 @@ int main(int argc , char *argv[])
     if (connect(sock , (struct sockaddr *)&server , sizeof(server)) < 0)
     {
         perror("connect failed. Error");
-        return 1;
+        return 0;
     }
 
-    puts("Connected\n");
+    pthread_t hReceiver;
+    pthread_create(&hReceiver, NULL, recv_thread, (void*)&sock);
 
 
     do{
+        
         char clientMessage[DEFAULT_BUFLEN] = "";
-
         selectedCommand = mainMenu();
         commandMenu(selectedCommand, clientMessage);
-
+        system("clear");
 
         //Send some data
         if( send(sock , clientMessage , strlen(clientMessage), 0) < 0)
@@ -120,11 +137,7 @@ int main(int argc , char *argv[])
             return 1;
         }
 
-        puts("Client message:");
-        puts(clientMessage);
-
-        //TODO: odgovor servera
- 
+        usleep(50000);
     }while(selectedCommand != EXIT);
     
 

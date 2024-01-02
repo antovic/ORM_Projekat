@@ -40,15 +40,20 @@ typedef struct userData
 
 int handleLogin(char *clientMessage, userData *userInfo)
 {
+    char response[DEFAULT_BUFLEN];
     FILE* users = fopen("../files/users.txt", "r");
     if(users == NULL)
     {
-        printf("Encountered an error while open a file users.txt\n");
+        strcpy(response,"Encountered an error while logging in. Please try again later.\n");
+        if( send(*(userInfo->socket) , response , strlen(response), 0) < 0)
+            puts("Send failed");
         return 0;
     }
     if(userInfo->loggedIn == 1)
     {
-        printf("Already logged in. Logout to proceed\n");
+        strcpy(response,"Already logged in. Logout to proceed\n");
+        if( send(*(userInfo->socket) , response , strlen(response), 0) < 0)
+            puts("Send failed");
         return 0;
     }
     char username[12], password[12], clientUsername[12], clientPassword[12];
@@ -61,10 +66,16 @@ int handleLogin(char *clientMessage, userData *userInfo)
         {
             strcpy(userInfo->username, username);
             userInfo->loggedIn = 1;
+            printf("CAO\n");
+            strcpy(response,"Login successful.\n");
+            if( send(*(userInfo->socket) , response , strlen(response), 0) < 0)
+                puts("Send failed");
             return 1;
         }
     }
-    printf("Wrong username or password, try again.\n");
+    strcpy(response,"Wrong username or password, try again.\n");
+    if( send(*(userInfo->socket) , response , strlen(response), 0) < 0)
+            puts("Send failed");
     // TODO: sendResponse(userInfo->socket, asjdiaspodjas, strlen(poruka))
     fclose(users);
     return 0;
@@ -72,15 +83,21 @@ int handleLogin(char *clientMessage, userData *userInfo)
 
 int handleLogout(userData *userInfo)
 {
+    char response[DEFAULT_BUFLEN];
     if(userInfo->loggedIn == 0)
     {
-        printf("You are not logged in.");
+        strcpy(response,"You are not logged in.\n");
+        if( send(*(userInfo->socket) , response , strlen(response), 0) < 0)
+            puts("Send failed");
         return 0;
     }
     else
     {
         userInfo->username[0] = '\0';
-        userInfo->loggedIn = 0; 
+        userInfo->loggedIn = 0;
+        strcpy(response,"Logout successful.\n");
+        if( send(*(userInfo->socket) , response , strlen(response), 0) < 0)
+            puts("Send failed"); 
         return 1;
     }
 }
@@ -88,11 +105,13 @@ int handleLogout(userData *userInfo)
 int handleSend(char *clientMessage, userData *userInfo)
 {
     int found = 0;
-    char username[12], password[12], recipient[12], message[128], mailboxPath[128];
+    char username[12], password[12], recipient[12], message[128], mailboxPath[128], response[DEFAULT_BUFLEN];
     FILE *mailbox, *users;
     if(userInfo->loggedIn == 0)
     {
-        printf("You are not logged in.");
+        strcpy(response,"You are not logged in.\n");
+        if( send(*(userInfo->socket) , response , strlen(response), 0) < 0)
+            puts("Send failed");
         return 0;
     }
     strtok(clientMessage, " ");
@@ -101,7 +120,9 @@ int handleSend(char *clientMessage, userData *userInfo)
     users = fopen("../files/users.txt", "r");
     if(users == NULL)
     {
-        printf("Encountered while checking if user %s exists\n", recipient);
+        strcpy(response,"Encountered an error while sending the message.\n");
+        if( send(*(userInfo->socket) , response , strlen(response), 0) < 0)
+            puts("Send failed");
         return 0;
     }
     while(fscanf(users, "%s %s", username, password) == 2)
@@ -113,7 +134,9 @@ int handleSend(char *clientMessage, userData *userInfo)
     }
     if(found == 0)
     {
-        printf("User does not exist.\n");
+        strcpy(response,"User does not exist.\n");
+        if( send(*(userInfo->socket) , response , strlen(response), 0) < 0)
+            puts("Send failed");
         return 0;
     }
     strcpy(mailboxPath, "../files/");
@@ -123,9 +146,14 @@ int handleSend(char *clientMessage, userData *userInfo)
     mailbox = fopen(mailboxPath, "a+");
     if(mailbox == NULL)
     {
-        printf("Encountered an error while accessing the mailbox. Please try again later.\n");
+        strcpy(response,"Encountered an error while sending the message.\n");
+        if( send(*(userInfo->socket) , response , strlen(response), 0) < 0)
+            puts("Send failed");
         return 0;
     }
+    strcpy(response,"Message sent.\n");
+        if( send(*(userInfo->socket) , response , strlen(response), 0) < 0)
+            puts("Send failed");
     fprintf(mailbox, "%s: %s\n", userInfo->username, message);
     fclose(users);
     fclose(mailbox);
@@ -134,11 +162,13 @@ int handleSend(char *clientMessage, userData *userInfo)
 
 int handleCheck(userData* userInfo)
 {
-    char mailboxPath[128];
+    char mailboxPath[128], response[DEFAULT_BUFLEN];
     FILE *mailbox;
     if(userInfo->loggedIn == 0)
     {
-        printf("You are not logged in.");
+        strcpy(response,"You are not logged in.\n");
+        if( send(*(userInfo->socket) , response , strlen(response), 0) < 0)
+            puts("Send failed");
         return 0;
     }
     strcpy(mailboxPath, "../files/");
@@ -147,24 +177,28 @@ int handleCheck(userData* userInfo)
     mailbox = fopen(mailboxPath, "r");
     if(mailbox == NULL)
     {
-        printf("Mailbox is either empty or unavailable at the moment. Please try again later.\n");
+        strcpy(response,"Mailbox is either empty or unavailable at the moment. Please try again.\n");
+        if( send(*(userInfo->socket) , response , strlen(response), 0) < 0)
+            puts("Send failed");
         return 0;
     }
-    else
-    {
-        printf("%s has some messages\n", userInfo->username);
-    }
+    
+    strcpy(response,"You have some messages in your mailbox.\n");
+    if( send(*(userInfo->socket) , response , strlen(response), 0) < 0)
+        puts("Send failed");
     fclose(mailbox);
     return 1;
 }
 
 int handleReceive(userData* userInfo)
 {
-    char mailboxPath[128], content[256];
+    char mailboxPath[128], content[256], response[DEFAULT_BUFLEN];
     FILE *mailbox;
     if(userInfo->loggedIn == 0)
     {
-        printf("You are not logged in.");
+        strcpy(response,"You are not logged in.\n");
+        if( send(*(userInfo->socket) , response , strlen(response), 0) < 0)
+            puts("Send failed");
         return 0;
     }
     strcpy(mailboxPath, "../files/");
@@ -173,17 +207,17 @@ int handleReceive(userData* userInfo)
     mailbox = fopen(mailboxPath, "r");
     if(mailbox == NULL)
     {
-        printf("Mailbox is either empty or unavailable at the moment. Please try again later.\n");
+        strcpy(response,"Mailbox is either empty or unavailable at the moment. Please try again.\n");
+        if( send(*(userInfo->socket) , response , strlen(response), 0) < 0)
+            puts("Send failed");
         return 0;
     }
-    else
+    while(fgets(content, 256, mailbox)) //reads the entire line(a message) from mailbox into content
     {
-        while(fgets(content, 256, mailbox)) //reads the entire line(a message) from mailbox into content
-        {
-            printf("%s", content);
-            //send(userInfo->socket, content, strlen(content));
-            //delete file 
-        }
+        strcpy(response,content);
+        if( send(*(userInfo->socket) , response , strlen(response), 0) < 0)
+            puts("Send failed");
+        //delete file 
     }
     fclose(mailbox);
     return 1;
@@ -249,6 +283,7 @@ void* recv_thread(void* args)
     {
         perror("recv failed!");
     }
+    close(*client_sock);
     return 0;
 }
 
@@ -260,6 +295,7 @@ int main(int argc , char *argv[])
     struct sockaddr_in server , client;
     pthread_t hReciever;
     //Create socket
+    system("clear");
     socket_desc = socket(AF_INET , SOCK_STREAM , 0);
     if (socket_desc == -1)
     {
@@ -308,6 +344,6 @@ int main(int argc , char *argv[])
         pthread_create(&hReciever, NULL, recv_thread, (void*)&userInfo);
         puts("Waiting for additional incoming connections...");
     }
-
+    close(socket_desc);
     return 0;
 }
