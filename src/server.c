@@ -52,7 +52,6 @@ void* recvThread(void* args)
         {
         case LOGIN:
             handleLogin(clientMessage, userInfo);
-            printf("%s %d\n", userInfo->username, userInfo->loggedIn);
             break;
         case LOGOUT: 
             handleLogout(userInfo);
