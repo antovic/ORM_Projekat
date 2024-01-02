@@ -21,6 +21,7 @@
 #include <fcntl.h>     //for open
 #include <unistd.h>    //for close
 #include <pthread.h> //threads
+#include <semaphore.h> //semaphore
 #include <unistd.h> //sleep
 #include <stdlib.h>
 
@@ -28,34 +29,15 @@
 #include "command.h"
 #include "requests.h"
 
-
-#define DEFAULT_BUFLEN 512
-#define DEFAULT_PORT   27015
-#define DEFAULT_LEN 12
+static pthread_mutex_t cs_mutex;
+static sem_t semaphore;
 
 void flushStdin() {
     int c;
     while ((c = getchar()) != '\n' && c != EOF);
 }
 
-
-
-
-Command mainMenu()
-{
-    Command command;
-    printf("Odaberite jednu od komandi: \n");
-    printf("1. Login\n");
-    printf("2. Logout\n");
-    printf("3. Send\n");
-    printf("4. Check\n");
-    printf("5. Receive\n");
-    printf("6. Exit\n");
-    scanf("%u", &command);
-    return command;
-}
-
-void commandMenu(Command input, char clientMessage[])
+void makeRequest(Command input, char clientMessage[])
 {
     flushStdin();
     switch(input)
@@ -80,15 +62,44 @@ void commandMenu(Command input, char clientMessage[])
     }
 }
 
-void* recv_thread(void* args)
+
+
+Command mainMenu()
+{
+    Command command;
+    pthread_mutex_lock(&cs_mutex);
+    system("clear");
+    printf("Select one command:\n");
+    printf("1. Login\n");
+    printf("2. Logout\n");
+    printf("3. Send\n");
+    printf("4. Check\n");
+    printf("5. Receive\n");
+    printf("6. Exit\n");
+    scanf("%u", &command);
+    system("clear");
+    pthread_mutex_unlock(&cs_mutex);
+    return command;
+}
+
+
+
+void* recvServerResponses(void* args)
 {
     int sock = *((int*)args);
     int readSize;
+    char dummy;
     char serverMessage[DEFAULT_BUFLEN] = "";
     while((readSize = recv(sock, serverMessage, DEFAULT_BUFLEN, 0)) > 0)
     {
+        pthread_mutex_lock(&cs_mutex);
+        system("clear");
         serverMessage[readSize] = '\0';
         printf("%s", serverMessage);
+        printf("Press any key to continue.\n");
+        scanf("%c", &dummy);
+        sem_post(&semaphore);
+        pthread_mutex_unlock(&cs_mutex);
     }
     return 0;
 }
@@ -98,6 +109,8 @@ int main(int argc , char *argv[])
     int sock;
     struct sockaddr_in server;
     Command selectedCommand;
+
+
 
     system("clear");
     //Create socket
@@ -119,16 +132,18 @@ int main(int argc , char *argv[])
         return 0;
     }
 
+    //Start the thread that listens to server responses
+    pthread_mutex_init(&cs_mutex, NULL);
+    sem_init(&semaphore, 0, 1);
     pthread_t hReceiver;
-    pthread_create(&hReceiver, NULL, recv_thread, (void*)&sock);
+    pthread_create(&hReceiver, NULL, recvServerResponses, (void*)&sock);
 
 
     do{
-        
         char clientMessage[DEFAULT_BUFLEN] = "";
+        sem_wait(&semaphore);
         selectedCommand = mainMenu();
-        commandMenu(selectedCommand, clientMessage);
-        system("clear");
+        makeRequest(selectedCommand, clientMessage);
 
         //Send some data
         if( send(sock , clientMessage , strlen(clientMessage), 0) < 0)
@@ -136,13 +151,12 @@ int main(int argc , char *argv[])
             puts("Send failed");
             return 1;
         }
-
-        usleep(50000);
     }while(selectedCommand != EXIT);
     
 
     close(sock);
-
+    pthread_mutex_destroy(&cs_mutex);
+    sem_destroy(&semaphore);
     return 0;
 }
 

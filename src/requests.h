@@ -1,22 +1,17 @@
 #include<stdio.h>      //printf
 #include<string.h>     //strlen
 
-
-
-#define DEFAULT_BUFLEN 512
-#define DEFAULT_PORT   27015
-#define DEFAULT_LEN 12
-#define DEFAULT_MESLEN 128
+#include "constants.h"
 
 
 void makeLoginRequest(char clientMessage[])
 {
     char username[DEFAULT_LEN];
     char password[DEFAULT_LEN];
-    printf("Unesite korisnicko ime: ");
+    printf("Enter a username: ");
     fgets(username, sizeof(username), stdin);
     strtok(username, "\n");
-    printf("Unesite lozinku: ");
+    printf("Enter a password: ");
     fgets(password, sizeof(password), stdin);
     strtok(password, "\n");
     strcat(clientMessage, "LOGIN");
@@ -35,10 +30,10 @@ void makeSendRequest(char clientMessage[])
 {
     char username[DEFAULT_LEN];
     char message[DEFAULT_MESLEN];
-    printf("Kome saljete: ");
+    printf("Who do you wish to send a message: ");
     fgets(username, sizeof(username), stdin);
     strtok(username, "\n");
-    printf("Unesite poruku (MAX 128 karaktera): ");
+    printf("Enter a message (MAX 128 characters): ");
     fgets(message, sizeof(message), stdin);
     strtok(message, "\n");
     strcat(clientMessage, "SEND");

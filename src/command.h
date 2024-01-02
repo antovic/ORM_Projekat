@@ -19,3 +19,5 @@ Command stringToCommand(char input[])
         ret = RECEIVE;
     return ret; 
 }
+
+
