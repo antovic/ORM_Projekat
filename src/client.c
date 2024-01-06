@@ -31,6 +31,7 @@
 
 static pthread_mutex_t cs_mutex;
 static sem_t semaphore;
+static int semamphoreState = 1;
 
 void flushStdin() {
     int c;
@@ -67,7 +68,6 @@ void makeRequest(Command input, char clientMessage[])
 Command mainMenu()
 {
     Command command;
-    pthread_mutex_lock(&cs_mutex);
     system("clear");
     printf("Select one command:\n");
     printf("1. Login\n");
@@ -78,31 +78,9 @@ Command mainMenu()
     printf("6. Exit\n");
     scanf("%u", &command);
     system("clear");
-    pthread_mutex_unlock(&cs_mutex);
     return command;
 }
 
-
-
-void* recvServerResponses(void* args)
-{
-    int sock = *((int*)args);
-    int readSize;
-    char dummy;
-    char serverMessage[DEFAULT_BUFLEN] = "";
-    while((readSize = recv(sock, serverMessage, DEFAULT_BUFLEN, 0)) > 0)
-    {
-        pthread_mutex_lock(&cs_mutex);
-        system("clear");
-        serverMessage[readSize] = '\0';
-        printf("%s", serverMessage);
-        printf("Press any key to continue.\n");
-        scanf("%c", &dummy);
-        sem_post(&semaphore);
-        pthread_mutex_unlock(&cs_mutex);
-    }
-    return 0;
-}
 
 int main(int argc , char *argv[])
 {
@@ -110,9 +88,6 @@ int main(int argc , char *argv[])
     struct sockaddr_in server;
     Command selectedCommand;
 
-
-
-    system("clear");
     //Create socket
     sock = socket(AF_INET , SOCK_STREAM , 0);
     if (sock == -1)
@@ -132,16 +107,11 @@ int main(int argc , char *argv[])
         return 0;
     }
 
-    //Start the thread that listens to server responses
-    pthread_mutex_init(&cs_mutex, NULL);
-    sem_init(&semaphore, 0, 1);
-    pthread_t hReceiver;
-    pthread_create(&hReceiver, NULL, recvServerResponses, (void*)&sock);
-
 
     do{
-        char clientMessage[DEFAULT_BUFLEN] = "";
-        sem_wait(&semaphore);
+        char dummy, clientMessage[DEFAULT_BUFLEN] = "", serverMessage[DEFAULT_BUFLEN] = "";    
+        int readSize;    
+        semamphoreState = 0;
         selectedCommand = mainMenu();
         makeRequest(selectedCommand, clientMessage);
 
@@ -151,6 +121,25 @@ int main(int argc , char *argv[])
             puts("Send failed");
             return 1;
         }
+
+        if((readSize = recv(sock, serverMessage, DEFAULT_BUFLEN, 0)) > 0)
+        {
+            system("clear");
+            serverMessage[readSize] = '\0';
+            printf("%s", serverMessage);
+            printf("Press any key to continue.\n");
+            scanf("%c", &dummy);
+        }
+        else if(readSize == 0)
+        {
+            printf("Server has closed connection.\n");
+            break;
+        }
+        else
+        {
+            printf("An error occured while communicating to the server.\n");
+        }
+
     }while(selectedCommand != EXIT);
     
 

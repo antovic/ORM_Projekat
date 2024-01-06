@@ -42,7 +42,7 @@ void* recvThread(void* args)
     {
         //client-side output
         printf("Bytes received: %d\n", read_size);
-        printf("Client %d message: '%s'\n", *client_sock, clientMessage);
+        printf("Client %d message: '%s'\n", *clientSock, clientMessage);
         //Message to command
         strcpy(commandString, clientMessage);
         strtok(commandString, " ");
@@ -71,7 +71,7 @@ void* recvThread(void* args)
         }
         for(i = 0; i < DEFAULT_BUFLEN; i++)
         {
-            client_message[i] = '\0';
+            clientMessage[i] = '\0';
         }
     }
 
@@ -84,7 +84,7 @@ void* recvThread(void* args)
     {
         perror("recv failed!");
     }
-    close(*client_sock);
+    close(*clientSock);
     return 0;
 }
 

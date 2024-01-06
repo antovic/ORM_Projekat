@@ -146,16 +146,24 @@ int handleCheck(userData* userInfo)
     strcpy(mailboxPath, "../files/");
     strcat(mailboxPath, userInfo->username);
     strcat(mailboxPath, ".txt");
-    mailbox = fopen(mailboxPath, "r");
+    mailbox = fopen(mailboxPath, "a+");
     if(mailbox == NULL)
     {
-        strcpy(response,"Mailbox is either empty or unavailable at the moment. Please try again.\n");
+        strcpy(response,"Mailbox is unavailable at the moment. Please try again later.\n");
         if( send(*(userInfo->socket) , response , strlen(response), 0) < 0)
             puts("Send failed");
         return 0;
     }
-    
-    strcpy(response,"You have some messages in your mailbox.\n");
+
+    fseek (mailbox, 0, SEEK_END);
+    if(ftell(mailbox) == 0)
+    {
+        strcpy(response,"Your mailbox is empty. Please try again later.\n");
+    }
+    else
+    {
+        strcpy(response,"You have some messages in your mailbox.\n");
+    }
     if( send(*(userInfo->socket) , response , strlen(response), 0) < 0)
         puts("Send failed");
     fclose(mailbox);
@@ -164,8 +172,8 @@ int handleCheck(userData* userInfo)
 
 int handleReceive(userData* userInfo)
 {
-    char mailboxPath[DEFAULT_MESLEN], content[DEFAULT_MESLEN + DEFAULT_LEN + 2], response[DEFAULT_BUFLEN];
-    FILE *mailbox;
+    char mailboxPath[DEFAULT_MESLEN], mailboxCopyPath[DEFAULT_MESLEN], content[DEFAULT_MESLEN + DEFAULT_LEN + 2], response[DEFAULT_BUFLEN];
+    FILE *mailbox, *mailboxCopy;
     if(userInfo->loggedIn == 0)
     {
         strcpy(response,"You are not logged in.\n");
@@ -179,19 +187,39 @@ int handleReceive(userData* userInfo)
     mailbox = fopen(mailboxPath, "r");
     if(mailbox == NULL)
     {
-        strcpy(response,"Mailbox is either empty or unavailable at the moment. Please try again.\n");
+        strcpy(response,"Mailbox is unavailable at the moment. Please try again later.\n");
         if( send(*(userInfo->socket) , response , strlen(response), 0) < 0)
             puts("Send failed");
         return 0;
     }
-    while(fgets(content, 256, mailbox)) //reads the entire line(a message) from mailbox into content
+    // while(fgets(content, DEFAULT_MESLEN + DEFAULT_LEN + 2, mailbox)) //reads the entire line(a message) from mailbox into content
+    // {
+    //     strcpy(response,content);
+    //     if( send(*(userInfo->socket) , response , strlen(response), 0) < 0)
+    //         puts("Send failed"); 
+    // }
+    if(fgets(content, DEFAULT_MESLEN + DEFAULT_LEN + 2, mailbox))
     {
         strcpy(response,content);
-        if( send(*(userInfo->socket) , response , strlen(response), 0) < 0)
-            puts("Send failed"); 
+    }
+    else
+    {
+        strcpy(response, "No available messages at the moment. Please try again later\n");
+    }
+    if( send(*(userInfo->socket) , response , strlen(response), 0) < 0)
+        puts("Send failed");
+    strcpy(mailboxCopyPath, "../files/");
+    strcat(mailboxCopyPath, userInfo->username);
+    strcat(mailboxCopyPath, "_copy.txt");
+    mailboxCopy = fopen(mailboxCopyPath, "w");
+    while(fgets(content, DEFAULT_MESLEN + DEFAULT_LEN + 2, mailbox)) //reads the entire line(a message) from mailbox into content
+    {
+        fprintf(mailboxCopy, "%s", content);
     }
     fclose(mailbox);
+    fclose(mailboxCopy);
     remove(mailboxPath);
+    rename(mailboxCopyPath, mailboxPath);
     return 1;
 
 }
