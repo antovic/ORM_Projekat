@@ -20,8 +20,6 @@
 #include <arpa/inet.h>  //inet_addr
 #include <fcntl.h>     //for open
 #include <unistd.h>    //for close
-#include <pthread.h> //threads
-#include <semaphore.h> //semaphore
 #include <unistd.h> //sleep
 #include <stdlib.h>
 
@@ -29,15 +27,13 @@
 #include "command.h"
 #include "requests.h"
 
-static pthread_mutex_t cs_mutex;
-static sem_t semaphore;
-static int semamphoreState = 1;
 
 void flushStdin() {
     int c;
     while ((c = getchar()) != '\n' && c != EOF);
 }
 
+//Chooses the correct request format to send to the server
 void makeRequest(Command input, char clientMessage[])
 {
     flushStdin();
@@ -64,8 +60,8 @@ void makeRequest(Command input, char clientMessage[])
 }
 
 
-
-Command mainMenu()
+//Displays the main dialogue
+Command prompt()
 {
     Command command;
     system("clear");
@@ -100,7 +96,7 @@ int main(int argc , char *argv[])
     server.sin_family = AF_INET;
     server.sin_port = htons(DEFAULT_PORT);
 
-    //Connect to remote server
+    //Connect to a remote server
     if (connect(sock , (struct sockaddr *)&server , sizeof(server)) < 0)
     {
         perror("connect failed. Error");
@@ -110,18 +106,17 @@ int main(int argc , char *argv[])
 
     do{
         char dummy, clientMessage[DEFAULT_BUFLEN] = "", serverMessage[DEFAULT_BUFLEN] = "";    
-        int readSize;    
-        semamphoreState = 0;
-        selectedCommand = mainMenu();
+        int readSize;
+        selectedCommand = prompt();
         makeRequest(selectedCommand, clientMessage);
 
-        //Send some data
+        //Send the user input
         if( send(sock , clientMessage , strlen(clientMessage), 0) < 0)
         {
             puts("Send failed");
             return 1;
         }
-
+	    //Receive the server response
         if((readSize = recv(sock, serverMessage, DEFAULT_BUFLEN, 0)) > 0)
         {
             system("clear");
@@ -144,8 +139,6 @@ int main(int argc , char *argv[])
     
 
     close(sock);
-    pthread_mutex_destroy(&cs_mutex);
-    sem_destroy(&semaphore);
     return 0;
 }
 

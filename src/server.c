@@ -38,9 +38,10 @@ void* recvThread(void* args)
 	char clientMessage[DEFAULT_BUFLEN] = "";
     char commandString[DEFAULT_BUFLEN];
 	int read_size;
+    //Receive a message from client
     while( (read_size = recv(*clientSock , clientMessage , DEFAULT_BUFLEN , 0)) > 0 )
     {
-        //client-side output
+        //server-side output for debugging
         printf("Bytes received: %d\n", read_size);
         printf("Client %d message: '%s'\n", *clientSock, clientMessage);
         //Message to command
@@ -95,6 +96,7 @@ int main(int argc , char *argv[])
     int socket_desc , c;
     struct sockaddr_in server , client;
     pthread_t hReciever;
+
     //Clear the terminal
     system("clear");
 
@@ -111,7 +113,7 @@ int main(int argc , char *argv[])
     server.sin_addr.s_addr = INADDR_ANY;
     server.sin_port = htons(DEFAULT_PORT);
 
-    //Lets socket be reusable
+    //Make the address reusable
     const int enable = 1;
     setsockopt(socket_desc, SOL_SOCKET, SO_REUSEADDR, (const void*) &enable, sizeof(enable));
 
@@ -128,6 +130,7 @@ int main(int argc , char *argv[])
 
     puts("Waiting for incoming connections...");
     c = sizeof(struct sockaddr_in);
+
 
     //For each connection call the thread to receive messages
     while(1)
