@@ -1,16 +1,16 @@
-## ORM_Projekat
+#ORM_Projekat
 
-#Projekat iz predmeta Osnovi računarskih mreža
+##Projekat iz predmeta Osnovi računarskih mreža
 
 ##Build i run
-#Client 
+###Client 
 make -f makefile.client clean
 make client
 
-#Server
+###Server
 make -f makefile.client clean
 make client
 
-#Run
+###Run
 ./client
 ./server
