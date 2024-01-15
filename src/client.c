@@ -62,6 +62,8 @@ int main(int argc , char *argv[])
         int readSize;
         selectedCommand = Prompt();
 
+        if(selectedCommand < REGISTER || selectedCommand > EXIT)
+            continue;
         if(selectedCommand == EXIT)
             break;
 
