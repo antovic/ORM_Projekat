@@ -28,54 +28,7 @@
 #include "requests.h"
 
 
-void flushStdin() {
-    int c;
-    while ((c = getchar()) != '\n' && c != EOF);
-}
 
-//Chooses the correct request format to send to the server
-void makeRequest(Command input, char clientMessage[])
-{
-    flushStdin();
-    switch(input)
-    {
-        case LOGIN: 
-            makeLoginRequest(clientMessage);
-            break;
-        case LOGOUT: 
-            makeLogoutRequest(clientMessage);
-            break;
-        case SEND:
-            makeSendRequest(clientMessage);
-            break;
-        case CHECK:
-            makeCheckRequest(clientMessage);
-            break;
-        case RECEIVE:
-            makeReceiveRequest(clientMessage);
-            break;
-        default:
-            break;
-    }
-}
-
-
-//Displays the main dialogue
-Command prompt()
-{
-    Command command;
-    system("clear");
-    printf("Select one command:\n");
-    printf("1. Login\n");
-    printf("2. Logout\n");
-    printf("3. Send\n");
-    printf("4. Check\n");
-    printf("5. Receive\n");
-    printf("6. Exit\n");
-    scanf("%u", &command);
-    system("clear");
-    return command;
-}
 
 
 int main(int argc , char *argv[])
@@ -107,8 +60,12 @@ int main(int argc , char *argv[])
     do{
         char dummy, clientMessage[DEFAULT_BUFLEN] = "", serverMessage[DEFAULT_BUFLEN] = "";    
         int readSize;
-        selectedCommand = prompt();
-        makeRequest(selectedCommand, clientMessage);
+        selectedCommand = Prompt();
+
+        if(selectedCommand == EXIT)
+            break;
+
+        MakeRequest(selectedCommand, clientMessage);
 
         //Send the user input
         if( send(sock , clientMessage , strlen(clientMessage), 0) < 0)
@@ -135,7 +92,7 @@ int main(int argc , char *argv[])
             printf("An error occured while communicating to the server.\n");
         }
 
-    }while(selectedCommand != EXIT);
+    }while(1);
     
 
     close(sock);

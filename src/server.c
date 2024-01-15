@@ -29,53 +29,27 @@
 #include "constants.h"
 
 
-//Listens  to client messages and calls the correct handle
+//Listens to client messages and calls the correct handle
 void* recvThread(void* args)
 {
     int i;
 	userData *userInfo = (userData*)args; 
 	int *clientSock = userInfo->socket;
-	char clientMessage[DEFAULT_BUFLEN] = "";
-    char commandString[DEFAULT_BUFLEN];
+    char clientMessage[DEFAULT_BUFLEN] = "";
 	int read_size;
-    //Receive a message from client
+    //While client is connected handle requests
     while( (read_size = recv(*clientSock , clientMessage , DEFAULT_BUFLEN , 0)) > 0 )
     {
-        //server-side output for debugging
+        //Server-side output for debugging
         printf("Bytes received: %d\n", read_size);
         printf("Client %d message: '%s'\n", *clientSock, clientMessage);
-        //Message to command
-        strcpy(commandString, clientMessage);
-        strtok(commandString, " ");
-        Command userCommand = stringToCommand(commandString);
 
-        switch(userCommand)
-        {
-        case LOGIN:
-            handleLogin(clientMessage, userInfo);
-            break;
-        case LOGOUT: 
-            handleLogout(userInfo);
-            break;
-        case SEND:
-            handleSend(clientMessage, userInfo);
-            break;
-        case CHECK:
-            handleCheck(userInfo);
-            break;
-        case RECEIVE:
-            handleReceive(userInfo);
-            break;
-        default:
-            //do nothing for exit
-            break;
-        }
+        HandleRequest(clientMessage, userInfo);
         for(i = 0; i < DEFAULT_BUFLEN; i++)
         {
             clientMessage[i] = '\0';
         }
     }
-
     if(read_size == 0)
     {
         puts("Client disconnected");

@@ -11,7 +11,49 @@ typedef struct userData
     int loggedIn;
 } userData;
 
-int handleLogin(char *clientMessage, userData *userInfo)
+int HandleRegister(char *clientMessage, userData *userInfo)
+{
+    char username[DEFAULT_LEN], password[DEFAULT_LEN], clientUsername[DEFAULT_LEN], clientPassword[DEFAULT_LEN], response[DEFAULT_BUFLEN];
+    FILE* users = fopen("../files/users.txt", "r+");
+    if(users == NULL)
+    {
+        strcpy(response,"Encountered an error while trying to register. Please try again later.\n");
+        if( send(*(userInfo->socket) , response , strlen(response), 0) < 0)
+            puts("Send failed");
+        return 0;
+    }
+    if(userInfo->loggedIn == 1)
+    {
+        strcpy(response,"Already logged in. Logout to proceed\n");
+        if( send(*(userInfo->socket) , response , strlen(response), 0) < 0)
+            puts("Send failed");
+        return 0;
+    }
+    strtok(clientMessage, " ");
+    strcpy(clientUsername, strtok(NULL, " "));
+    strcpy(clientPassword, strtok(NULL, " \n"));
+    while(fscanf(users, "%s %s", username, password) == 2)
+    {
+        if((strcmp(username, clientUsername) == 0))
+        {
+            strcpy(response,"Username already taken. Please try another one.\n");
+            if( send(*(userInfo->socket) , response , strlen(response), 0) < 0)
+                puts("Send failed");
+            return 0;
+        }
+    }
+    fprintf(users, "%s %s\n", clientUsername, clientPassword);
+    strcpy(userInfo->username, clientUsername);
+    userInfo->loggedIn = 1;
+    strcpy(response,"Your account has been created.\nYou are logged in.\n");
+            if( send(*(userInfo->socket) , response , strlen(response), 0) < 0)
+                puts("Send failed");
+    fclose(users);
+    return 1;
+}
+
+
+int HandleLogin(char *clientMessage, userData *userInfo)
 {
     char username[DEFAULT_LEN], password[DEFAULT_LEN], clientUsername[DEFAULT_LEN], clientPassword[DEFAULT_LEN], response[DEFAULT_BUFLEN];
     FILE* users = fopen("../files/users.txt", "r");
@@ -38,7 +80,6 @@ int handleLogin(char *clientMessage, userData *userInfo)
         {
             strcpy(userInfo->username, username);
             userInfo->loggedIn = 1;
-            printf("CAO\n");
             strcpy(response,"Login successful.\n");
             if( send(*(userInfo->socket) , response , strlen(response), 0) < 0)
                 puts("Send failed");
@@ -48,12 +89,11 @@ int handleLogin(char *clientMessage, userData *userInfo)
     strcpy(response,"Wrong username or password, try again.\n");
     if( send(*(userInfo->socket) , response , strlen(response), 0) < 0)
             puts("Send failed");
-    // TODO: sendResponse(userInfo->socket, asjdiaspodjas, strlen(poruka))
     fclose(users);
     return 0;
 }
 
-int handleLogout(userData *userInfo)
+int HandleLogout(userData *userInfo)
 {
     char response[DEFAULT_BUFLEN];
     if(userInfo->loggedIn == 0)
@@ -63,18 +103,15 @@ int handleLogout(userData *userInfo)
             puts("Send failed");
         return 0;
     }
-    else
-    {
-        userInfo->username[0] = '\0';
-        userInfo->loggedIn = 0;
-        strcpy(response,"Logout successful.\n");
-        if( send(*(userInfo->socket) , response , strlen(response), 0) < 0)
-            puts("Send failed"); 
-        return 1;
-    }
+    userInfo->username[0] = '\0';
+    userInfo->loggedIn = 0;
+    strcpy(response,"Logout successful.\n");
+    if( send(*(userInfo->socket) , response , strlen(response), 0) < 0)
+        puts("Send failed"); 
+    return 1;
 }
 
-int handleSend(char *clientMessage, userData *userInfo)
+int HandleSend(char *clientMessage, userData *userInfo)
 {
     int found = 0;
     char username[DEFAULT_LEN], password[DEFAULT_LEN], recipient[DEFAULT_LEN], message[DEFAULT_MESLEN], mailboxPath[DEFAULT_PATHLEN], response[DEFAULT_BUFLEN];
@@ -132,7 +169,7 @@ int handleSend(char *clientMessage, userData *userInfo)
     return 1;
 }
 
-int handleCheck(userData* userInfo)
+int HandleCheck(userData* userInfo)
 {
     char mailboxPath[DEFAULT_PATHLEN], response[DEFAULT_BUFLEN];
     FILE *mailbox;
@@ -170,7 +207,7 @@ int handleCheck(userData* userInfo)
     return 1;
 }
 
-int handleReceive(userData* userInfo)
+int HandleReceive(userData* userInfo)
 {
     char mailboxPath[DEFAULT_MESLEN], mailboxCopyPath[DEFAULT_MESLEN], content[DEFAULT_MESLEN + DEFAULT_LEN + 2], response[DEFAULT_BUFLEN];
     FILE *mailbox, *mailboxCopy;
@@ -222,4 +259,37 @@ int handleReceive(userData* userInfo)
     rename(mailboxCopyPath, mailboxPath);
     return 1;
 
+}
+
+//Decides which handle to use for clients input
+void HandleRequest(char *clientMessage, userData* userInfo)
+{
+    char commandString[DEFAULT_BUFLEN];
+    strcpy(commandString, clientMessage);
+    strtok(commandString, " ");
+    Command userCommand = StringToCommand(commandString);
+    switch(userCommand)
+    {
+        case REGISTER:
+            HandleRegister(clientMessage, userInfo);
+            break;
+        case LOGIN:
+            HandleLogin(clientMessage, userInfo);
+            break;
+        case LOGOUT: 
+            HandleLogout(userInfo);
+            break;
+        case SEND:
+            HandleSend(clientMessage, userInfo);
+            break;
+        case CHECK:
+            HandleCheck(userInfo);
+            break;
+        case RECEIVE:
+            HandleReceive(userInfo);
+            break;
+        default:
+            //do nothing for exit
+            break;
+    }
 }
