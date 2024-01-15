@@ -23,9 +23,7 @@
 #include <unistd.h> //sleep
 #include <stdlib.h>
 
-
-#include "command.h"
-#include "requests.h"
+#include "clientRequests.h"
 
 
 

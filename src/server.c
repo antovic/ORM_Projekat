@@ -24,16 +24,13 @@
 #include<pthread.h> //threads
 
 
-#include "command.h"
-#include "handles.h"
-#include "constants.h"
-
+#include "serverHandles.h"
 
 //Listens to client messages and calls the correct handle
 void* recvThread(void* args)
 {
     int i;
-	userData *userInfo = (userData*)args; 
+	UserData *userInfo = (UserData*)args; 
 	int *clientSock = userInfo->socket;
     char clientMessage[DEFAULT_BUFLEN] = "";
 	int read_size;
@@ -111,7 +108,7 @@ int main(int argc , char *argv[])
     {
     	int* client_sock = (int*) malloc(sizeof(int*));
         *client_sock = accept(socket_desc, (struct sockaddr *)&client, (socklen_t*)&c);
-        userData *userInfo = (userData *) malloc(sizeof(userData*));
+        UserData *userInfo = (UserData *) malloc(sizeof(UserData*));
         userInfo->socket = client_sock;
         userInfo->loggedIn = 0;
         if (client_sock < 0)

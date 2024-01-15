@@ -2,23 +2,28 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include<sys/socket.h>
+#include<arpa/inet.h> //inet_addr
+#include<unistd.h>    //write
+
 #include "constants.h"
+#include "command.h"
 
 //Necessary for tracking different clients
-typedef struct userData
+typedef struct UserData
 {
 	int *socket;
     char username[DEFAULT_LEN];
     int loggedIn;
-} userData;
+} UserData;
 
-void SendResponse(userData *userInfo, char *response)
+void SendResponse(UserData *userInfo, char *response)
 {
     if(send(*(userInfo->socket) , response , strlen(response), 0) < 0)
         puts("Send failed");
 }
 
-int HandleRegister(char *clientMessage, userData *userInfo)
+int HandleRegister(char *clientMessage, UserData *userInfo)
 {
     char username[DEFAULT_LEN], password[DEFAULT_LEN], clientUsername[DEFAULT_LEN], clientPassword[DEFAULT_LEN];
     FILE* users = fopen("../files/users.txt", "r+");
@@ -54,7 +59,7 @@ int HandleRegister(char *clientMessage, userData *userInfo)
 }
 
 
-int HandleLogin(char *clientMessage, userData *userInfo)
+int HandleLogin(char *clientMessage, UserData *userInfo)
 {
     char username[DEFAULT_LEN], password[DEFAULT_LEN], clientUsername[DEFAULT_LEN], clientPassword[DEFAULT_LEN];
     FILE* users = fopen("../files/users.txt", "r");
@@ -88,7 +93,7 @@ int HandleLogin(char *clientMessage, userData *userInfo)
     return 0;
 }
 
-int HandleLogout(userData *userInfo)
+int HandleLogout(UserData *userInfo)
 {
     if(userInfo->loggedIn == 0)
     {
@@ -101,7 +106,7 @@ int HandleLogout(userData *userInfo)
     return 1;
 }
 
-int HandleSend(char *clientMessage, userData *userInfo)
+int HandleSend(char *clientMessage, UserData *userInfo)
 {
     int found = 0;
     char username[DEFAULT_LEN], password[DEFAULT_LEN], recipient[DEFAULT_LEN], message[DEFAULT_MESLEN], mailboxPath[DEFAULT_PATHLEN];
@@ -151,7 +156,7 @@ int HandleSend(char *clientMessage, userData *userInfo)
     return 1;
 }
 
-int HandleCheck(userData* userInfo)
+int HandleCheck(UserData* userInfo)
 {
     char mailboxPath[DEFAULT_PATHLEN];
     FILE *mailbox;
@@ -179,7 +184,7 @@ int HandleCheck(userData* userInfo)
     return 1;
 }
 
-int HandleReceive(userData* userInfo)
+int HandleReceive(UserData* userInfo)
 {
     char mailboxPath[DEFAULT_MESLEN], mailboxCopyPath[DEFAULT_MESLEN], content[DEFAULT_MESLEN + DEFAULT_LEN + 2];
     FILE *mailbox, *mailboxCopy;
@@ -222,7 +227,7 @@ int HandleReceive(userData* userInfo)
 }
 
 //Decides which handle to use for clients input
-void HandleRequest(char *clientMessage, userData* userInfo)
+void HandleRequest(char *clientMessage, UserData* userInfo)
 {
     char commandString[DEFAULT_BUFLEN];
     strcpy(commandString, clientMessage);

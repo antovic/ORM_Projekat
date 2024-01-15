@@ -2,6 +2,7 @@
 #include<string.h>     //strlen
 
 #include "constants.h"
+#include "command.h"
 
 void flushStdin() {
     int c;
