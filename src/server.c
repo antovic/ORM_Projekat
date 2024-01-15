@@ -111,16 +111,16 @@ int main(int argc , char *argv[])
     {
     	int* client_sock = (int*) malloc(sizeof(int*));
         *client_sock = accept(socket_desc, (struct sockaddr *)&client, (socklen_t*)&c);
-        userData userInfo;
-        userInfo.socket = client_sock;
-        userInfo.loggedIn = 0;
+        userData *userInfo = (userData *) malloc(sizeof(userData*));
+        userInfo->socket = client_sock;
+        userInfo->loggedIn = 0;
         if (client_sock < 0)
         {
            perror("accept failed");
            return 1;
         }
         puts("Connection accepted");
-        pthread_create(&hReciever, NULL, recvThread, (void*)&userInfo);
+        pthread_create(&hReciever, NULL, recvThread, (void*)userInfo);
         puts("Waiting for additional incoming connections...");
     }
     close(socket_desc);
